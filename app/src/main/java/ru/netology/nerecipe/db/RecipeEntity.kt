@@ -1,8 +1,9 @@
-package ru.netology.nerecipe.dto
+package ru.netology.nerecipe.db
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import ru.netology.nerecipe.dto.Category
 
 @Entity(tableName = "recipes")
 class RecipeEntity(
@@ -14,9 +15,9 @@ class RecipeEntity(
     @ColumnInfo(name = "authorName")
     val authorName: String,
     @ColumnInfo(name = "categoryRecipe")
-    val categoryRecipe: String,
+    val categoryRecipe: Category,
     @ColumnInfo(name = "textRecipe")
     val textRecipe: String,
     @ColumnInfo(name = "isFavorite")
-    val isFavorite: Boolean,
+    val isFavorite: Boolean
 )

@@ -1,22 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/feed"
-        android:drawable="@color/black"
+        android:id="@+id/feedFragment"
+        android:enabled="true"
         android:icon="@drawable/icon_list"
-        android:title="@string/all_recipes"
-        app:showAsAction="ifRoom" />
+        android:title="@string/all_recipes" />
     <item
-        android:id="@+id/favorites"
-        android:drawable="@color/black"
-        android:icon="@drawable/icon_is_favorites"
-        android:title="@string/favorites"
-        app:showAsAction="ifRoom" />
-    <item
-        android:id="@+id/filter"
-        android:drawable="@color/black"
+        android:id="@+id/recipeCreateFragment"
+        android:enabled="true"
         android:icon="@drawable/icon_filter"
-        android:title="@string/filter"
-        app:showAsAction="ifRoom" />
+        android:title="@string/filter" />
+    <item
+        android:id="@+id/recipeFavoriteFragment"
+        android:enabled="true"
+        android:icon="@drawable/icon_is_favorites"
+        android:title="@string/favorites" />
 </menu>

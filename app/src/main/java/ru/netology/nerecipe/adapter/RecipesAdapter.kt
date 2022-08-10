@@ -1,20 +1,20 @@
 package ru.netology.nerecipe.adapter
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.PopupMenu
-import androidx.annotation.DrawableRes
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import ru.netology.nerecipe.R
-import ru.netology.nerecipe.dto.Recipe
 import ru.netology.nerecipe.databinding.RecipeBinding
+import ru.netology.nerecipe.dto.Category
+import ru.netology.nerecipe.dto.Recipe
 
-class RecipeAdapter(
+class RecipesAdapter(
     private val interactionListener: RecipeInteractionListener
-
-) : ListAdapter<Recipe, RecipeAdapter.ViewHolder>(DiffCallback) {
+) : ListAdapter<Recipe, RecipesAdapter.ViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -26,10 +26,11 @@ class RecipeAdapter(
         holder.bind(getItem(position))
     }
 
-    inner class ViewHolder(
+    class ViewHolder(
         private val binding: RecipeBinding,
         listener: RecipeInteractionListener
     ) : RecyclerView.ViewHolder(binding.root) {
+
         private lateinit var recipe: Recipe
 
         private val popupMenu by lazy {
@@ -51,46 +52,49 @@ class RecipeAdapter(
             }
         }
 
+        init {
+            binding.menuOptions.setOnClickListener { popupMenu.show() }
+        }
+
+        init {
+            binding.authorName.setOnClickListener { listener.onRecipeCardClicked(recipe) }
+            binding.title.setOnClickListener { listener.onRecipeCardClicked(recipe) }
+            binding.avatar.setOnClickListener { listener.onRecipeCardClicked(recipe) }
+        }
+
+        init {
+            itemView.setOnClickListener { listener.onRecipeItemClicked(recipe) }
+            binding.buttonFavorite.setOnClickListener { listener.onFavoriteClicked(recipe) }
+        }
+
         fun bind(recipe: Recipe) {
             this.recipe = recipe
             with(binding) {
                 title.text = recipe.title
                 authorName.text = recipe.authorName
-                categoryRecipe.text = recipe.categoryRecipe
-                textRecipe.text = recipe.textRecipe
-                buttonFavorite.setImageResource(getFavoriteIconResId(recipe.isFavorite))
-                buttonFavorite.setOnClickListener {
-                    interactionListener.onFavoriteClicked(recipe.id)
-                }
-                title.setOnClickListener {
-                    interactionListener.onSingleRecipeClicked(recipe)
-                }
-                textRecipe.setOnClickListener {
-                    interactionListener.onSingleRecipeClicked(recipe)
-                }
-                authorName.setOnClickListener {
-                    interactionListener.onSingleRecipeClicked(recipe)
-                }
-                categoryRecipe.setOnClickListener {
-                    interactionListener.onSingleRecipeClicked(recipe)
-                }
-                menuOptions.setOnClickListener {
-                    popupMenu.show()
-                }
+                categoryRecipe.text = categoryRecipe.context.showCategories(recipe.categoryRecipe)
+                buttonFavorite.isChecked = recipe.isFavorite
             }
         }
+    }
 
-        @DrawableRes
-        private fun getFavoriteIconResId(liked: Boolean) =
-            if (liked) R.drawable.icon_is_favorites else R.drawable.icon_is_not_favorites
+    private object DiffCallback : DiffUtil.ItemCallback<Recipe>() {
+        override fun areItemsTheSame(oldItem: Recipe, newItem: Recipe) =
+            oldItem.id == newItem.id
+
+        override fun areContentsTheSame(oldItem: Recipe, newItem: Recipe) =
+            oldItem == newItem
     }
 }
 
-private object DiffCallback : DiffUtil.ItemCallback<Recipe>() {
-
-    override fun areItemsTheSame(oldItem: Recipe, newItem: Recipe): Boolean =
-        oldItem.id == newItem.id
-
-    override fun areContentsTheSame(oldItem: Recipe, newItem: Recipe): Boolean =
-        oldItem == newItem
+fun Context.showCategories(category: Category): String {
+    return when (category) {
+        Category.European -> getString(R.string.european_type)
+        Category.Asian -> getString(R.string.asian_type)
+        Category.PanAsian -> getString(R.string.panasian_type)
+        Category.Eastern -> getString(R.string.eastern_type)
+        Category.American -> getString(R.string.american_type)
+        Category.Russian -> getString(R.string.russian_type)
+        Category.Mediterranean -> getString(R.string.mediterranean_type)
+    }
 }

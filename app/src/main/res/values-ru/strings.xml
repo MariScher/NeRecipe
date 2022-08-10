@@ -26,4 +26,5 @@
     <string name="mediterranean_type">Средиземноморская</string>
     <string name="remove">Удалить</string>
     <string name="edit">Редактировать</string>
+    <string name="avatar_description">Аватарка блюда</string>
 </resources>

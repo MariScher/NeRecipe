@@ -5,73 +5,106 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.setFragmentResult
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import ru.netology.nerecipe.R
+import ru.netology.nerecipe.adapter.RecipesAdapter
+import ru.netology.nerecipe.adapter.showCategories
+import ru.netology.nerecipe.databinding.FragmentFilterBinding
 import ru.netology.nerecipe.databinding.FragmentCreateBinding
+import ru.netology.nerecipe.dto.Category
 import ru.netology.nerecipe.viewModel.RecipeViewModel
 
 class RecipeCreateFragment : Fragment() {
-    private val viewModel by activityViewModels<RecipeViewModel>()
-    private var categoryRecipeNumber = ""
+    private val recipeCreateViewModel: RecipeViewModel by viewModels(ownerProducer = ::requireParentFragment)
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ) = FragmentCreateBinding.inflate(layoutInflater, container, false).also { binding ->
+    ) = FragmentFilterBinding.inflate(layoutInflater, container, false).also { binding ->
 
-        binding.buttonSave.setOnClickListener {
-            onSaveButtonClicked(binding)
-        }
+        with(binding) {
+            checkBoxEuropean.text = checkBoxEuropean.context.showCategories(Category.European)
+            checkBoxAsian.text = checkBoxAsian.context.showCategories(Category.Asian)
+            checkBoxPanasian.text = checkBoxPanasian.context.showCategories(Category.PanAsian)
+            checkBoxEastern.text = checkBoxEastern.context.showCategories(Category.Eastern)
+            checkBoxAmerican.text = checkBoxAmerican.context.showCategories(Category.American)
+            checkBoxRussian.text = checkBoxRussian.context.showCategories(Category.Russian)
+            checkBoxMediterranean.text = checkBoxMediterranean.context.showCategories(Category.Mediterranean)
 
-        binding.categoryRecipeCheckBox.setOnCheckedChangeListener { _, i ->
-            when (i) {
-                R.id.checkBoxEuropean -> categoryRecipeNumber = "European"
-                R.id.checkBoxAsian -> categoryRecipeNumber = "Asian"
-                R.id.checkBoxPanasian -> categoryRecipeNumber = "Panasian"
-                R.id.checkBoxEastern -> categoryRecipeNumber = "Eastern"
-                R.id.checkBoxAmerican -> categoryRecipeNumber = "American"
-                R.id.checkBoxRussian -> categoryRecipeNumber = "Russian"
-                R.id.checkBoxMediterranean -> categoryRecipeNumber = "Mediterranean"
+            binding.buttonSave.setOnClickListener {
+                onButtonSaveClicked(binding)
             }
-        }
-        binding.buttonSave.setOnClickListener {
-            onSaveButtonClicked(binding)
         }
     }.root
 
-    private fun onSaveButtonClicked(binding: FragmentCreateBinding) {
-        val title = binding.title.text.toString()
-        val authorName = binding.authorName.text.toString()
-        val textRecipe = binding.textRecipe.text.toString()
+    private fun onButtonSaveClicked(binding: FragmentFilterBinding) {
+        val categoryList = arrayListOf<Category>()
+        var checkedCount = 7
+        val nothingIsChecked = 0
 
-        if (!emptyCheckUpdateWarning(
-                title = title,
-                authorName = authorName,
-                textRecipe = textRecipe,
-                categoryRecipe = categoryRecipeNumber
-            )
-        ) return
+        if (binding.checkBoxEuropean.isChecked) {
+            categoryList.add(Category.European)
+            recipeCreateViewModel.setCategoryFilter = true
+        } else {
+            --checkedCount
+        }
 
-        viewModel.onSaveClicked(
-            title = title,
-            authorNam = authorName,
-            categoryRecipe = categoryRecipeNumber,
-            textRecipe = textRecipe
-        )
-        findNavController().popBackStack()
+        if (binding.checkBoxAsian.isChecked) {
+            categoryList.add(Category.Asian)
+            recipeCreateViewModel.setCategoryFilter = true
+        } else {
+            --checkedCount
+        }
+
+        if (binding.checkBoxPanasian.isChecked) {
+            categoryList.add(Category.PanAsian)
+            recipeCreateViewModel.setCategoryFilter = true
+        } else {
+            --checkedCount
+        }
+
+        if (binding.checkBoxEastern.isChecked) {
+            categoryList.add(Category.Eastern)
+            recipeCreateViewModel.setCategoryFilter = true
+        } else {
+            --checkedCount
+        }
+
+        if (binding.checkBoxAmerican.isChecked) {
+            categoryList.add(Category.American)
+            recipeCreateViewModel.setCategoryFilter = true
+        } else {
+            --checkedCount
+        }
+
+        if (binding.checkBoxRussian.isChecked) {
+            categoryList.add(Category.Russian)
+            recipeCreateViewModel.setCategoryFilter = true
+        } else {
+            --checkedCount
+        }
+
+        if (binding.checkBoxMediterranean.isChecked) {
+            categoryList.add(Category.Mediterranean)
+            recipeCreateViewModel.setCategoryFilter = true
+        } else {
+            --checkedCount
+        }
+
+        if (checkedCount == nothingIsChecked) {
+            Toast.makeText(activity, "Выберите хотя бы одно значение!", Toast.LENGTH_LONG).show()
+        } else {
+            recipeCreateViewModel.showRecipesByCategories(categoryList)
+            val resultBundle = Bundle(1)
+            resultBundle.putParcelableArrayList(CHECKBOX_KEY, categoryList)
+            setFragmentResult(CHECKBOX_KEY, resultBundle)
+            findNavController().popBackStack()
+        }
     }
 
-    private fun emptyCheckUpdateWarning(
-        title: String,
-        authorName: String,
-        textRecipe: String,
-        categoryRecipe: String
-    ): Boolean {
-        return if (title.isBlank() || authorName.isBlank() || textRecipe.isBlank() || categoryRecipe.isBlank()) {
-            Toast.makeText(activity, "All fields must be filled in", Toast.LENGTH_LONG).show()
-            false
-        } else true
+    companion object {
+        const val CHECKBOX_KEY = "checkBoxContent"
     }
 }

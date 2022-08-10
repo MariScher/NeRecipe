@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import ru.netology.nerecipe.dao.RecipeDao
-import ru.netology.nerecipe.dto.RecipeEntity
 
 @Database(
     entities = [RecipeEntity::class],
@@ -20,12 +18,15 @@ abstract class AppDb : RoomDatabase() {
 
         fun getInstance(context: Context): AppDb {
             return instance ?: synchronized(this) {
-                instance ?: buildDatabase(context).also { instance = it }
+                instance ?: buildDatabase(context)
+                    .also { instance = it }
             }
         }
 
-        private fun buildDatabase(context: Context) = Room.databaseBuilder(
-            context, AppDb::class.java, "appNeRecipe.db"
-        ).allowMainThreadQueries().build()
+        private fun buildDatabase(context: Context) =
+            Room.databaseBuilder(
+                context, AppDb::class.java, "appRecipe.db"
+            ).allowMainThreadQueries()
+                .build()
     }
 }

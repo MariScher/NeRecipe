@@ -2,128 +2,94 @@ package ru.netology.nerecipe.viewModel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.map
+import androidx.navigation.fragment.findNavController
+import ru.netology.nerecipe.R
 import ru.netology.nerecipe.adapter.RecipeInteractionListener
-import ru.netology.nerecipe.dto.Recipe
-import ru.netology.nerecipe.repository.RecipeRepositoryImpl
+import ru.netology.nerecipe.adapter.RecipesAdapter
+import ru.netology.nerecipe.data.InMemoryRecipeRepositoryImpl
+import ru.netology.nerecipe.data.RecipeRepository
+import ru.netology.nerecipe.data.RoomRecipeRepositoryImpl
+import ru.netology.nerecipe.databinding.FragmentFilterBinding
+import ru.netology.nerecipe.databinding.FragmentCreateBinding
+import ru.netology.nerecipe.databinding.RecipeBinding
 import ru.netology.nerecipe.db.AppDb
-import ru.netology.nerecipe.repository.RecipeRepository
-import ru.netology.nerecipe.util.Event
+import ru.netology.nerecipe.dto.Category
+import ru.netology.nerecipe.dto.Recipe
+import ru.netology.nerecipe.util.SingleLiveEvent
+import java.util.*
+import kotlin.collections.ArrayList
 
-class RecipeViewModel(application: Application) : AndroidViewModel(application),
-    RecipeInteractionListener {
+class RecipeViewModel(
+    application: Application
+) : AndroidViewModel(application), RecipeInteractionListener {
 
-    private val repository: RecipeRepository =
-        RecipeRepositoryImpl(dao = AppDb.getInstance(context = application).recipeDao)
+    //private val repository: RecipeRepository = InMemoryRecipeRepositoryImpl
+    private val repository: RecipeRepository = RoomRecipeRepositoryImpl(
+        dao = AppDb.getInstance(context = application).recipeDao
+    )
 
-    val data by repository::data
-    var filterIsActive = false
-    val favoriteFragment = Event<String>()
-    val createFragment = Event<Unit>()
-    val updateRecipeFragment = Event<String?>()
-    val singleFragment = Event<Unit>()
-    val filterFragment = Event<Unit>()
-    val updateRecipe = MutableLiveData<Recipe>(null)
-    val singleRecipe = MutableLiveData<Recipe?>(null)
-    val feedFragment = data
-    private val currentRecipe = MutableLiveData<Recipe?>(null)
+    private var categoriesFilter: List<Category> = Category.values().toList()
 
-    fun clearFilter() {
-        repository.getData()
+    //val data get() = repository.data
+    var setCategoryFilter = false
+
+    val data = repository.data.map { list ->
+        list.filter { categoriesFilter.contains(it.categoryRecipe) }
     }
 
-    override fun updateContent(
-        id: Long,
-        title: String,
-        authorNam: String,
-        categoryRecipe: String,
-        textRecipe: String
-    ) {
-        val recipe = Recipe(
-            id = id,
-            title = title,
-            authorName = authorNam,
-            categoryRecipe = categoryRecipe,
-            textRecipe = textRecipe
-        )
-        repository.save(recipe)
+    val separateRecipeViewEvent = SingleLiveEvent<Long>()
+    val navigateToRecipeContentScreenEvent = SingleLiveEvent<Recipe?>()
+    val currentRecipe = MutableLiveData<Recipe?>(null)
+    var favoriteFilter: MutableLiveData<Boolean> = MutableLiveData()
+
+    init {
+        favoriteFilter.value = false
     }
 
-    override fun onRemoveClicked(recipe: Recipe) {
-        repository.delete(recipe)
+    fun showRecipesByCategories(categories: List<Category>) {
+        categoriesFilter = categories
+        repository.update()
     }
 
-    override fun onEditClicked(recipe: Recipe) {
-        updateRecipe.value = recipe
-        updateRecipeFragment.call()
-    }
-
-    override fun onFavoriteClicked(recipeId: Long) {
-        repository.favorite(recipeId)
-    }
-
-    override fun onSearchClicked(text: String) {
-        repository.searchText(text)
-    }
-
-    override fun onCreateClicked() {
-        createFragment.call()
-    }
-
-    override fun onSaveClicked(
-        title: String,
-        authorNam: String,
-        categoryRecipe: String,
-        textRecipe: String
-    ) {
-        val recipe = Recipe(
+    fun onSaveButtonClicked(recipe: Recipe) {
+        if (recipe.textRecipe.isBlank() && recipe.title.isBlank()) return
+        val newRecipe = currentRecipe.value?.copy(
+            textRecipe = recipe.textRecipe,
+            title = recipe.title,
+            categoryRecipe = recipe.categoryRecipe
+        ) ?: Recipe(
             id = RecipeRepository.NEW_ID,
-            title = title,
-            authorName = authorNam,
-            categoryRecipe = categoryRecipe,
-            textRecipe = textRecipe
+            authorName = recipe.authorName,
+            title = recipe.title,
+            categoryRecipe = recipe.categoryRecipe,
+            textRecipe = recipe.textRecipe
         )
-        repository.save(recipe)
+        repository.save(newRecipe)
         currentRecipe.value = null
     }
 
-    override fun onSingleRecipeClicked(recipe: Recipe) {
-        singleRecipe.value = recipe
-        singleFragment.call()
+    fun onAddButtonClicked() {
+        navigateToRecipeContentScreenEvent.call()
     }
 
-    fun showEuropean(categoryRecipe: String) {
-        repository.showEuropean(categoryRecipe)
-        filterIsActive = true
+    fun searchRecipeByName(recipeName: String) = repository.search(recipeName)
+
+    override fun onRemoveClicked(recipe: Recipe) = repository.delete(recipe.id)
+
+    override fun onEditClicked(recipe: Recipe) {
+        currentRecipe.value = recipe
+        navigateToRecipeContentScreenEvent.value = recipe
     }
 
-    fun showAsian(categoryRecipe: String) {
-        repository.showAsian(categoryRecipe)
-        filterIsActive = true
+    override fun onRecipeCardClicked(recipe: Recipe) {
+        separateRecipeViewEvent.value = recipe.id
     }
 
-    fun showPanasian(categoryRecipe: String) {
-        repository.showPanasian(categoryRecipe)
-        filterIsActive = true
-    }
-
-    fun showEastern(categoryRecipe: String) {
-        repository.showEastern(categoryRecipe)
-        filterIsActive = true
-    }
-
-    fun showAmerican(categoryRecipe: String) {
-        repository.showAmerican(categoryRecipe)
-        filterIsActive = true
-    }
-
-    fun showRussian(categoryRecipe: String) {
-        repository.showRussian(categoryRecipe)
-        filterIsActive = true
-    }
-
-    fun showMediterranean(categoryRecipe: String) {
-        repository.showMediterranean(categoryRecipe)
-        filterIsActive = true
+    override fun onFavoriteClicked(recipe: Recipe) = repository.toFavorite(recipe.id)
+    override fun onRecipeItemClicked(recipe: Recipe) {
+        navigateToRecipeContentScreenEvent.value = recipe
     }
 }

@@ -2,89 +2,65 @@ package ru.netology.nerecipe.ui
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.setFragmentResultListener
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import ru.netology.nerecipe.R
-import ru.netology.nerecipe.adapter.RecipeAdapter
+import ru.netology.nerecipe.adapter.RecipesAdapter
 import ru.netology.nerecipe.databinding.ListFavoriteBinding
+import ru.netology.nerecipe.dto.Recipe
 import ru.netology.nerecipe.viewModel.RecipeViewModel
 
 class RecipeFavoriteFragment : Fragment() {
-    private val viewModel by activityViewModels<RecipeViewModel>()
+    private val favoriteRecipeViewModel: RecipeViewModel by viewModels(ownerProducer = ::requireParentFragment)
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ) = ListFavoriteBinding.inflate(layoutInflater, container, false).also { binding ->
-
-        viewModel.data.observe(viewLifecycleOwner) { recipes ->
-            val favRecipes = recipes.none { it.isFavorite }
-            if (favRecipes) {
-                binding.textBackground.isVisible = favRecipes
-                binding.iconBackground.isVisible = favRecipes
-            }
-        }
-
-        val adapter = RecipeAdapter(viewModel)
+        val adapter = RecipesAdapter(favoriteRecipeViewModel)
         binding.listFavorite.adapter = adapter
 
-        viewModel.data.observe(viewLifecycleOwner) { recipes ->
-            val favRecipes = recipes.filter { it.isFavorite }
-            adapter.submitList(favRecipes)
+        favoriteRecipeViewModel.data.observe(viewLifecycleOwner) { recipes ->
+            val favoriteRecipes = recipes.filter { it.isFavorite }
+            adapter.submitList(favoriteRecipes)
+
+            val emptyList = recipes.none { it.isFavorite }
+            binding.textBackground.visibility =
+                if (emptyList) View.VISIBLE else View.GONE
+            binding.iconBackground.visibility =
+                if (emptyList) View.VISIBLE else View.GONE
         }
 
-        binding.bottomToolbar.setOnItemSelectedListener {
-            when (it.itemId) {
-                R.id.feed -> findNavController().popBackStack()
-            }
-            true
+        favoriteRecipeViewModel.separateRecipeViewEvent.observe(viewLifecycleOwner) { recipeCardId ->
+            val direction =
+                RecipeFavoriteFragmentDirections.actionRecipeFavoriteFragmentToSeparateRecipeFragment(
+                    recipeCardId
+                )
+            findNavController().navigate(direction)
         }
-
-        binding.bottomToolbar.setOnItemSelectedListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.favorites -> {
-                    viewModel.favoriteFragment.call()
-                    true
-                }
-                R.id.filter -> {
-                    viewModel.filterFragment.call()
-                    true
-                }
-                R.id.feed -> {
-                    viewModel.feedFragment.observe(viewLifecycleOwner) {
-                        val directions =
-                            RecipeFavoriteFragmentDirections.actionFavoriteFragmentToFeedFragment()
-                        findNavController().navigate(directions)
-                    }
-                    true
-                }
-                else -> false
-            }
+        favoriteRecipeViewModel.navigateToRecipeContentScreenEvent.observe(viewLifecycleOwner) { recipe ->
+            val direction =
+                RecipeFavoriteFragmentDirections.actionRecipeFavoriteFragmentToNewOrEditedRecipeFragment(
+                    recipe
+                )
+            findNavController().navigate(direction)
         }
     }.root
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        viewModel.updateRecipeFragment.observe(this) {
-            val updatedRecipe = viewModel.updateRecipe.value
-            val directions = FeedRecipeFragmentDirections.updateRecipeFragment(updatedRecipe)
-            findNavController().navigate(directions)
-        }
-
-        viewModel.singleFragment.observe(this) {
-            val viewRecipe = viewModel.singleRecipe.value
-            val directions = FeedRecipeFragmentDirections.recipeViewFragment(viewRecipe)
-            findNavController().navigate(directions)
-        }
-
-        viewModel.filterFragment.observe(this) {
-            val directions = FeedRecipeFragmentDirections.recipeFilterFragment()
-            findNavController().navigate(directions)
+    override fun onResume() {
+        super.onResume()
+        setFragmentResultListener(
+            requestKey = NewOrEditedRecipeFragment.REQUEST_KEY
+        ) { requestKey, bundle ->
+            if (requestKey != NewOrEditedRecipeFragment.REQUEST_KEY) return@setFragmentResultListener
+            val newRecipe = bundle.getParcelable<Recipe>(
+                NewOrEditedRecipeFragment.RESULT_KEY
+            ) ?: return@setFragmentResultListener
+            favoriteRecipeViewModel.onSaveButtonClicked(newRecipe)
         }
     }
 }
